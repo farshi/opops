@@ -1,0 +1,67 @@
+#!/bin/bash
+VER=1.1.14
+export TERM="xterm-256color"
+
+
+red=`tput setaf 1`
+green=`tput setaf 2`
+yellow=`tput setaf 3`
+blue=`tput setaf 4`
+white=`tput setaf 7`
+reset=`tput sgr0`
+
+echo "$white Installing opops (Operate Operations) utility ..."
+
+if [[  -z "$OPERATE_HOME" ]]; then
+    echo "$yellow Hint: Operate Home directory is the the root folder your atlas operate codes stored  "
+
+    echo "$white Enter Operate Home Direcroty:"
+    read  OPERATE_HOME && export OPERATE_HOME 
+fi
+
+export OPOPS_HOME="$HOME/.operate/opops"
+
+if [[  "$1" == "local" ]]; then
+    echo "upgrading locally ..."
+    rm -rf "$OPOPS_HOME"
+    cp -r ../opops "$OPOPS_HOME"
+else
+
+    export git_url=https://github.com/farshi/opops.git
+    git clone $git_url "${OPOPS_HOME}"
+    cd "$OPOPS_HOME"
+    git checkout opops && git pull
+    cp "$OPOPS_HOME/opops" /usr/local/bin
+fi
+
+chmod +x /usr/local/bin/opops
+
+grep -q "alias opops" ~/.bash_profile
+installed_before=$?
+
+if [[ $installed_before -eq 1 ]] ; then
+   echo "export OPOPS_HOME=$OPOPS_HOME" >> ~/.bash_profile
+   echo "export OPERATE_HOME=$OPERATE_HOME" >> ~/.bash_profile
+   echo "alias opops='sh $OPOPS_HOME/opops' " >> ~/.bash_profile
+
+   echo "export OPOPS_HOME=$OPOPS_HOME" >> ~/.zshrc
+   echo "export OPERATE_HOME=$OPERATE_HOME" >> ~/.zshrc
+   echo "alias opops='sh $OPOPS_HOME/opops' "  >> ~/.zshrc
+fi
+
+
+echo "$white Opops (Operate Operations)  installed and ready for use."
+
+source ~/.bash_profile
+
+opops
+
+if [[  "$1" == "upgrade" ]]; then
+    
+    echo "OpOps Upgraded to $VER!"
+fi
+
+
+
+
+

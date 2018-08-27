@@ -1,0 +1,234 @@
+#!/bin/sh
+#set -o pipefail
+#set -o errexit
+#set -o nounset
+#set -o xtrace
+
+export TERM="xterm-256color"
+export VER="1.1.11"
+
+red=`tput setaf 1`
+green=`tput setaf 2`
+yellow=`tput setaf 3`
+blue=`tput setaf 4`
+white=`tput setaf 7`
+reset=`tput sgr0`
+
+
+export SCRIPTS_DIR="$(cd "$(dirname "$0")" && pwd -P)"
+if [[ -f opops ]]; then
+    unset OPOPS_HOME
+fi
+
+
+
+export PATH=$JAVA_HOME/bin::/usr/local/bin/:$PATH$PATH
+export OPOPS_HOME="${OPOPS_HOME:-$SCRIPTS_DIR}"
+export OPERATE_HOME="${OPERATE_HOME:-$SCRIPTS_DIR/../}"
+export MASTER_ENV="$OPERATE_HOME/.compiled.env"
+export OPOPS_RUNTIME="$OPERATE_HOME/.runtime.env"
+export USER_ENV="$OPERATE_HOME/config.env"
+
+
+#  echo "OPOPS_HOME=$OPOPS_HOME"
+#  echo "OPERATE_HOME=$OPERATE_HOME" 
+
+
+export ANSIBLE_ROOT=$OPOPS_HOME/ansible
+
+
+function usage {
+echo  "$green
+ _____  ____  _____  ____  ___ 
+(  _  )(  _ \(  _  )(  _ \/ __)
+ )(_)(  )___/ )(_)(  )___/\__ \ 
+(_____)(__)  (_____)(__)  (___/
+
+$yellow Operate Operations 
+$blue Version $VER 
+$reset"
+
+echo "$white Usage: $red opops $blue [aws|ansible|packer|...|] envfile=keyvalue.txt $green Target-Command $reset"
+echo "$white Run  $yellow./opops help$white  to see all command options"
+echo "$white Examples:  "
+echo  "$white \t  $blue$ $white opops docker help "
+echo  "$yellow \t\t Will show list of  Target-Command/s for docker operations "
+echo  "$white \t $blue $ $white opops  docker pull-run-atlas "
+echo  "$yellow \t\t Will pull the latest docker image from apro and run the instnace \n"
+echo "$white For upgrading to new version, please run $blue opops upgrade  \n $reset"
+
+}
+
+function clear_vars(){
+      rm -rf /tmp/keyvalues*.*
+      rm -rf  "$OPERATE_HOME/.compiled.env"
+      rm -rf  "$OPERATE_HOME/.runtime.env"
+}
+function print_vars(){
+    if [[ -f  "$MASTER_ENV" ]]; then
+        while IFS='=' read key value ;do
+            echo "$blue ${key//[[:blank:]]/}=$yellow $value" 
+        done < "$MASTER_ENV"
+    fi
+
+}
+
+function compile_envs(){
+    CONF_FILE="$OPOPS_HOME/$SUB_CMD/config.env"
+
+    rm -rf  "$MASTER_ENV"
+    rm -rf /tmp/keyvalues.tmp*.*
+    #ignore all comments form config 
+
+    __Tempkeyvalues="/tmp/keyvalues.tmp"
+   
+    if [[ -f "$CONF_FILE"  ]]; then
+        $(cat "$CONF_FILE" >> $__Tempkeyvalues )
+    fi
+ 
+    if [[ -f "$OPOPS_HOME/config.env" ]]; then
+        $(cat "$OPOPS_HOME/config.env"  >> $__Tempkeyvalues )
+    fi
+    
+    if [[ -f "$USER_ENV" ]]; then
+        $(cat "$USER_ENV"  >> $__Tempkeyvalues )
+    fi
+
+    if [[ -f "$OPOPS_RUNTIME" ]]; then
+        $(cat "$OPOPS_RUNTIME"  >> $__Tempkeyvalues )
+    fi
+
+ 
+    if [[ -f "$ENVFILE" ]]; then
+        echo "Reading env variables from command line envfile : $ENVFILE"
+        $(cat "$ENVFILE" >> $__Tempkeyvalues )
+    fi
+
+
+    if [[ -f  $__Tempkeyvalues  ]]; then
+
+        sed  -e 's/#.*$//' -e '/^$/d'  /$__Tempkeyvalues > $__Tempkeyvalues.new
+        
+        #export all envs
+        export $(cat $__Tempkeyvalues.new   | xargs  )
+
+        # extract keys 
+        while IFS='=' read key value ;do
+            #trim kyes and add to keys file
+            echo "${key//[[:blank:]]/}" >> $__Tempkeyvalues.keys
+        done < $__Tempkeyvalues.new
+
+        #remove duplicte keys
+        awk '!seen[$0]++' $__Tempkeyvalues.keys > $__Tempkeyvalues.keys.unique
+
+        #create MasterEnv File
+        while IFS= read -r key; do
+            echo "${key//[[:blank:]]/}"="`printenv $key`" >> "$MASTER_ENV"
+        done < $__Tempkeyvalues.keys.unique
+    fi
+    
+    rm -rf /tmp/keyvalues.tmp*.*
+    echo $__Tempkeyvalue
+
+}
+
+
+function checkNewVersion(){
+
+    cat ./opops-installer | head -2 | tail -1
+    #if ver (113) < 114 then plese upgrade
+    
+}
+
+
+
+case "$1" in
+	upgrade)
+		# upgrade
+        sh "$OPOPS_HOME/installer" upgrade 
+        exit 0
+		
+		;;
+	saveVar)
+		# save var
+        if [[ -z $2 || -z $3 ]]; then
+            echo "Error: key and value should provided!"
+            echo "Usage opops saveVar Var_Name Var_Value"
+            exit 1
+        fi
+
+        key=$2
+        value=$3
+        echo "${key//[[:blank:]]/}=$value" >> "$OPOPS_RUNTIME"
+        exit 0
+		;;
+	vars)
+		# print vars
+        print_vars
+		exit 0
+		;;
+    
+    clean)
+        # clear vars
+        clear_vars
+        echo " $green OpOps Variables are cleaned! $reset "
+        exit 0
+    ;;
+    help | ansible | aws | common | docker | mobile | packer | security| server | setup )
+        # cd subproj
+        SUB_CMD=$1
+        cd "$OPOPS_HOME/$1"
+    ;;
+    
+	*)
+        usage
+        exit 1
+        ;;
+esac
+
+
+# Process script arguments
+
+target_command=$2
+arguments=""
+
+for i in "${@:3}"
+do
+
+case $i in
+    envfile=*)
+    ENVFILE="${i#*=}"
+    shift # past argument=value
+    ;;
+    
+    filter=*)
+    filter="${i#*=}"
+    arguments="$arguments ${i}"
+    shift # past argument=value
+    ;;
+
+    asg_min_size=*)
+    asg_min_size="${i#*=}"
+    arguments="$arguments ${i}"
+    shift # past argument=value
+    ;;
+
+    desired_capacity=*)
+    desired_capacity="${i#*=}"
+    arguments="$arguments ${i}"
+    shift # past argument=value
+    ;;
+    *)
+      echo "Error: Unknown option: $i" >&2
+      usage
+      exit 1
+    ;;
+esac
+   
+
+done
+ 
+compile_envs 
+
+make $target_command $arguments
+

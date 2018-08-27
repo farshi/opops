@@ -1,0 +1,9 @@
+Description:
+  Managing Atlas Operate Docker images and instances , including building, 
+  releasing, pulling and running operations.
+
+Usage:
+  opops docker <Command>
+
+Example:
+  $ opops docker up

@@ -1,0 +1,16 @@
+Description:
+  Storing A value in a Variable in opops call chain!
+
+Usage:
+  $opops saveVar "RT_VALUE" "$(KEY)"
+  
+  It is recommended to add RT prefix to the value so the stored value can be distinguished from 
+  other variables which are populated from the env files or profiles.
+
+Example:
+
+  $opops saveVar "RT_KMS_KEY_ID" "$(KMS_KEY_ID)"
+
+  In the above example we retrieved KMS_KEY_ID and store it in RT_KMS_KEY_ID
+  The value can be retrieved using simple ${RT_KMS_KEY_ID} in the opops call chain!
+

@@ -1,0 +1,16 @@
+docker/docker.log
+mobile/logs/android.log
+mobile/logs/ios.log
+aws/build
+reports/
+.vagrant
+*.idea
+*.iml
+*.iws
+*.ipr
+build/
+.vim-bookmarks
+ansible/roles/
+packer/ec2_amazon-ebs.pem
+_galaxy_roles
+aws/cloudformation

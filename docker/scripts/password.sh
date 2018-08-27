@@ -1,0 +1,1 @@
+echo ${ARTIFACTORY_PASSWORD}

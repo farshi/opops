@@ -1,0 +1,21 @@
+project_variables:
+  envSubCode: "dev"
+  envCode: "NonProduction"
+  WebServerPort: "8080"
+  KeyName: "atlasop-np"
+  InstanceType: "t2.large"
+  COPRNETCIDR: "10.0.0.0/8"
+  VPCCIDR: "10.11.72.0/21"
+  DCCIDR: "192.168.0.0/16"   
+  InstanceProfile: "ccoe-iam-nbnEc2baseInstanceProfile-QO9RQOKTMMEW"
+  KmsKeyIdExportValue: "kms:key:mobc:nonprod"
+  DBSubnetGroupdExportValue: "dbsubnetgroup:vpc1:all"
+  RdsSecGroupExportValue: "sg:atlas:rds"
+  OracleOptionGroupNameExportValue : "optgrname:atlas:oracle"
+  DBInstanceClass: "db.t2.medium"
+  DBAllocatedStorage: "10"
+  DBName: "ORCL"
+  DBUser: "NBN_ATLASACT_NP"
+  ReadReplica: 'false'
+  MultiAZ: 'false'
+  VPCIdExportValue: "vpc:vpc1"
